@@ -1,21 +1,43 @@
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React from "react";
+import PlayingScreen from "./app/screens/PlayingScreen";
+import HomeScreen from "./app/screens/HomeScreen";
+import AllMusicScreen from "./app/screens/AllMusicScreen";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+
+const RootStack = createStackNavigator();
+const RootStackScreen = () => (
+  <RootStack.Navigator headerMode="none">
+    <RootStack.Screen
+      name="Home"
+      component={HomeScreen}
+      // options={{
+      //   animationEnabled: false,
+      // }}
+    />
+    <RootStack.Screen
+      name="All Music"
+      component={AllMusicScreen}
+      // options={{
+      //   animationEnabled: false,
+      // }}
+    />
+    <RootStack.Screen
+      name="Playing Screen"
+      component={PlayingScreen}
+      // options={{
+      //   animationEnabled: false,
+      // }}
+    />
+  </RootStack.Navigator>
+);
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <RootStackScreen />
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
