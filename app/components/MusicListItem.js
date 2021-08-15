@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   Image,
   StyleSheet,
   Text,
@@ -49,16 +50,20 @@ export default function MusicListItem({ song, ...rest }) {
         <View style={styles.musicDetailsContainer}>
           <Image
             source={{
-              uri: picture?.pictureData,
+              uri:
+                picture?.pictureData ||
+                "https://source.unsplash.com/featured/?music",
             }}
             style={styles.musicImage}
           />
           <View style={styles.musicDetails}>
             <Text style={styles.musicTime}>{secondsToDuration(duration)}</Text>
-            <Text style={styles.musicName}>
-              {wordTruncate(title || filename, 20)}
+            <Text numberOfLines={1} style={styles.musicName}>
+              {title || filename}
             </Text>
-            <Text style={styles.musicArtiste}>{artist}</Text>
+            <Text numberOfLines={1} style={styles.musicArtiste}>
+              {artist}
+            </Text>
           </View>
         </View>
         <IconButton
@@ -79,10 +84,12 @@ const styles = StyleSheet.create({
   musicArtiste: {
     color: "lightgrey",
     fontSize: 12,
+    width: Dimensions.get("window").width - 140,
   },
   musicName: {
     fontWeight: "bold",
     color: "white",
+    width: Dimensions.get("window").width - 140,
     fontSize: 16,
   },
   musicTime: {

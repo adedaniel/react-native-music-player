@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -24,126 +24,199 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { BlurView } from "expo-blur";
+import { AntDesign } from "@expo/vector-icons";
+import { secondsToDuration, wordTruncate } from "../utils";
+import AudioContext from "../utils/Context";
+import MusicInfo from "expo-music-info";
 
 function PlayingScreen({ navigation }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const {
+    isPlaying,
+    setIsPlaying,
+    onAudioPress,
+    currentAudio,
+    audioFiles,
+    setCurrentAudio,
+  } = useContext(AudioContext);
+
+  const [songDetails, setSongDetails] = useState({});
+  const {
+    id,
+    uri,
+    albumId,
+    duration,
+    filename,
+    creationTime,
+    modificationTime,
+  } = currentAudio;
+
+  async function fetchSongDetails() {
+    let metadata = await MusicInfo.getMusicInfoAsync(uri, {
+      title: true,
+      artist: true,
+      album: true,
+      genre: true,
+      picture: true,
+    });
+    setSongDetails({ ...metadata });
+  }
+  useEffect(() => {
+    fetchSongDetails();
+  }, [currentAudio]);
+
+  const { title, artist, album, genre, picture } = songDetails;
 
   return (
-    <ScrollView>
+    <ScrollView style={{ backgroundColor: "#0d1117" }}>
       <StatusBar />
       <SafeAreaView style={styles.container}>
-        <ImageBackground
-          source={{
-            uri: "https://source.unsplash.com/featured/?music",
-          }}
-          style={styles.musicImageBg}
-        >
-          <View style={styles.viewLayout}>
-            <View style={styles.upperContentContainer}>
-              <BlurView intensity={50}>
-                <View style={styles.upperContentOverlay}></View>
-              </BlurView>
-              <View style={styles.upperContent}>
-                <View style={styles.topRow}>
-                  <IconButton
-                    icon="chevron-down"
-                    color={Colors.white}
-                    size={32}
-                    onPress={() => navigation.navigate("All Music")}
-                  />
-                  <Text style={[styles.textWhite, styles.nowPlayingText]}>
-                    Now Playing
-                  </Text>
-                  <IconButton
-                    icon="dots-vertical"
-                    color={Colors.white}
-                    size={32}
-                    onPress={() => console.log("Pressed")}
-                  />
+        <View style={styles.viewLayout}>
+          <View style={styles.upperContentContainer}>
+            <View style={styles.upperContent}>
+              <View style={styles.topRow}>
+                <IconButton
+                  icon="chevron-down"
+                  color={Colors.white}
+                  size={32}
+                  onPress={() => navigation.navigate("All Music")}
+                />
+                <Text style={[styles.textWhite, styles.nowPlayingText]}>
+                  Now Playing
+                </Text>
+                <IconButton
+                  icon="dots-vertical"
+                  color={Colors.white}
+                  size={32}
+                  onPress={() => console.log("Pressed")}
+                />
+              </View>
+              <View style={styles.optionsRow}>
+                <FAB
+                  small
+                  icon="shuffle"
+                  color="white"
+                  style={styles.playOption}
+                  onPress={() => console.log("Pressed")}
+                />
+                <FAB
+                  small
+                  icon="repeat"
+                  color="white"
+                  style={styles.playOption}
+                  onPress={() => console.log("Pressed")}
+                />
+                <FAB
+                  small
+                  icon="playlist-play"
+                  color="white"
+                  style={styles.playOption}
+                  onPress={() => console.log("Pressed")}
+                />
+                <FAB
+                  small
+                  icon="heart-outline"
+                  color="white"
+                  style={styles.playOption}
+                  onPress={() => console.log("Pressed")}
+                />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.middleContainer}>
+            <Image
+              style={styles.songImage}
+              source={{
+                uri:
+                  picture?.pictureData ||
+                  "https://source.unsplash.com/featured/?music",
+              }}
+              borderRadius={20}
+            />
+          </View>
+
+          <View style={styles.lowerContentContainer}>
+            {/* <View style={styles.lowerContentOverlay}></View> */}
+
+            <View style={styles.lowerContent}>
+              <View style={styles.songInfo}>
+                <Text style={[styles.textWhite, styles.songName]}>
+                  {wordTruncate(title || filename, 50)}
+                </Text>
+                <Text style={[styles.textWhite, styles.songArtist]}>
+                  {artist}
+                </Text>
+                <View style={styles.playBackContainer}>
+                  <View style={styles.playBackContent}>
+                    <View style={styles.playBackRow}>
+                      <Text style={[styles.textWhite]}>0:01</Text>
+                      <Slider
+                        minimumTrackTintColor="#28fcfc"
+                        maximumTrackTintColor="lightgrey"
+                        thumbTintColor="#28fcfc"
+                        style={styles.playBackSlider}
+                        tapToSeek
+                      />
+                      <Text style={[styles.textWhite]}>
+                        {secondsToDuration(duration)}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.optionsRow}>
-                  <FAB
-                    icon="shuffle"
-                    color="white"
-                    style={styles.playOption}
-                    onPress={() => console.log("Pressed")}
+
+                <View style={styles.songActionsContainer}>
+                  <IconButton
+                    icon="skip-previous"
+                    color={Colors.white}
+                    size={32}
+                    onPress={() => {
+                      const currentAudioIndex = audioFiles.findIndex(
+                        ({ id }) => id === currentAudio.id
+                      );
+                      if (currentAudioIndex > 0) {
+                        setCurrentAudio(audioFiles[currentAudioIndex - 1]);
+                        onAudioPress(audioFiles[currentAudioIndex - 1]);
+                        setIsPlaying(true);
+                      }
+                    }}
                   />
                   <FAB
-                    icon="repeat"
-                    color="white"
-                    style={styles.playOption}
-                    onPress={() => console.log("Pressed")}
+                    icon={isPlaying ? "pause" : "play"}
+                    color="black"
+                    backgroundColor="#28fcfc"
+                    style={styles.playButton}
+                    onPress={() => {
+                      setIsPlaying(!isPlaying);
+                      onAudioPress(currentAudio);
+                    }}
                   />
-                  <FAB
-                    icon="playlist-play"
-                    color="white"
-                    style={styles.playOption}
-                    onPress={() => console.log("Pressed")}
-                  />
-                  <FAB
-                    icon="heart-outline"
-                    color="white"
-                    style={styles.playOption}
-                    onPress={() => console.log("Pressed")}
+                  {/* <AntDesign.Button
+                    name="play"
+                    size={64}
+                    borderRadius={40}
+                    color="#28fcfc"
+                    backgroundColor="transparent"
+                  /> */}
+                  <IconButton
+                    icon="skip-next"
+                    color={Colors.white}
+                    size={32}
+                    onPress={() => {
+                      const currentAudioIndex = audioFiles.findIndex(
+                        ({ id }) => id === currentAudio.id
+                      );
+                      if (currentAudioIndex < audioFiles.length - 1) {
+                        setCurrentAudio(audioFiles[currentAudioIndex + 1]);
+                        onAudioPress(audioFiles[currentAudioIndex + 1]);
+                        setIsPlaying(true);
+                      }
+                    }}
                   />
                 </View>
               </View>
             </View>
-            <View style={styles.lowerContentContainer}>
-              <BlurView intensity={50} tint="dark">
-                {/* <View style={styles.lowerContentOverlay}></View> */}
-
-                <View style={styles.lowerContent}>
-                  <View style={styles.songInfo}>
-                    <Text style={[styles.textWhite, styles.songName]}>
-                      Believe In YourselfBelieve In Yourself
-                    </Text>
-                    <Text style={[styles.textWhite, styles.songArtist]}>
-                      Muhammed Ali
-                    </Text>
-                    <View style={styles.songActionsContainer}>
-                      <IconButton
-                        icon="skip-previous"
-                        color={Colors.white}
-                        size={32}
-                        onPress={() => console.log("Pressed")}
-                      />
-                      <FAB
-                        icon={isPlaying ? "pause" : "play"}
-                        color="white"
-                        style={styles.playButton}
-                        onPress={() => setIsPlaying(!isPlaying)}
-                      />
-                      <IconButton
-                        icon="skip-next"
-                        color={Colors.white}
-                        size={32}
-                        onPress={() => console.log("Pressed")}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.playBackContainer}>
-                    <View style={styles.playBackOverlay}></View>
-                    <View style={styles.playBackContent}>
-                      <View style={styles.playBackRow}>
-                        <Text style={[styles.textWhite]}>0:01</Text>
-                        <Slider
-                          minimumTrackTintColor={Colors.green200}
-                          maximumTrackTintColor="lightgrey"
-                          thumbTintColor="#3b9262"
-                          style={styles.playBackSlider}
-                          tapToSeek
-                        />
-                        <Text style={[styles.textWhite]}>2:28</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              </BlurView>
-            </View>
           </View>
-        </ImageBackground>
+        </View>
       </SafeAreaView>
     </ScrollView>
   );
@@ -152,10 +225,18 @@ function PlayingScreen({ navigation }) {
 export default PlayingScreen;
 
 const styles = StyleSheet.create({
+  songImage: {
+    width: 250,
+    height: 250,
+  },
+  middleContainer: {
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   lowerContentOverlay: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#000",
     opacity: 0.4,
   },
   lowerContent: {
@@ -176,16 +257,14 @@ const styles = StyleSheet.create({
   },
   upperContent: {
     width: "100%",
-    position: "absolute",
   },
   upperContentContainer: {
+    // marginTop: 12,
     width: "100%",
-    position: "relative",
-    height: 170,
   },
 
   playBackSlider: {
-    width: "80%",
+    width: "75%",
     marginHorizontal: 4,
   },
   playBackRow: {
@@ -206,13 +285,14 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   playBackContainer: {
-    position: "relative",
-    marginTop: 20,
+    width: "100%",
     height: 72,
+    // marginBottom: 8,
   },
   playButton: {
-    backgroundColor: "#3b9262",
+    backgroundColor: "#28fcfc",
     marginHorizontal: 10,
+
     // fontSize: 90,
     // height: 70,
     // width: 70,
@@ -221,6 +301,7 @@ const styles = StyleSheet.create({
     // borderRadius: 40,
   },
   songActionsContainer: {
+    marginBottom: 20,
     flexDirection: "row",
     alignItems: "center",
   },
@@ -232,10 +313,10 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "center",
     flexDirection: "row",
-    marginTop: 24,
+    marginTop: 12,
   },
   viewLayout: {
-    height: Dimensions.get("window").height,
+    height: "100%",
     justifyContent: "space-between",
   },
   musicImageBg: {
@@ -245,7 +326,7 @@ const styles = StyleSheet.create({
   playOption: {
     backgroundColor: "#9493936b",
     // fontSize: 80,
-    marginRight: 12,
+    marginRight: 18,
   },
   playlistContainer: {
     backgroundColor: "#30363d",
@@ -263,19 +344,20 @@ const styles = StyleSheet.create({
     color: "white",
     marginTop: 4,
     textAlign: "center",
-    marginBottom: 32,
-    fontSize: 20,
+    // marginBottom: 8,
+    fontSize: 16,
   },
   songName: {
     color: "white",
     paddingTop: 10,
+    paddingHorizontal: 16,
     fontWeight: "bold",
     textAlign: "center",
-    fontSize: 28,
+    fontSize: 24,
   },
   container: {
     flex: 1,
-    // paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
     backgroundColor: "#0d1117",
     // paddingHorizontal: 16,
     minHeight: Dimensions.get("window").height,
@@ -290,7 +372,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     // marginTop: 16,
-    marginBottom: 6,
+    // marginBottom: 6,
   },
   text: {
     color: "white",

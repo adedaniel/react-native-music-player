@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
+  FlatList,
   Image,
   ImageBackground,
   Platform,
   SafeAreaView,
   ScrollView,
-  StatusBar,
+  // StatusBar,
   StyleSheet,
   Text,
   TouchableHighlight,
@@ -27,117 +28,53 @@ import Slider from "@react-native-community/slider";
 import { BlurView } from "expo-blur";
 import * as MediaLibrary from "expo-media-library";
 import Moment from "react-moment";
-import { secondsToDuration, wordTruncate } from "../utils";
+import { secondsToDuration, secondsToHHMM, wordTruncate } from "../utils";
 import MusicListItem from "../components/MusicListItem";
+import { StatusBar } from "expo-status-bar";
+import AudioContext from "../utils/Context";
 // import Permissions from "react-native-permissions";
 // import MusicFiles from "react-native-get-music-files";
 
 function AllMusicScreen({ navigation }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const {
+    audioFiles,
+    totalAudioCount,
+    soundObj,
+    playBackObj,
+    currentAudio,
+    setCurrentAudio,
+    setPlayBackObj,
+    setSoundObj,
+    isPlaying,
+    setIsPlaying,
+    onAudioPress,
+  } = useContext(AudioContext);
 
-  const [audioFiles, setAudioFiles] = useState([]);
-  const [totalAudioCount, setTotalAudioCount] = useState(0);
-  const [permissionError, setPermissionError] = useState(false);
-  const [photoPermission, setPhotoPermission] = useState(null);
+  const renderItem = ({ item: song }) => (
+    <MusicListItem
+      onPress={() => {
+        if (song.id !== currentAudio.id) {
+          setCurrentAudio(song);
+          setIsPlaying(true);
+          onAudioPress(song);
+        }
+        navigation.navigate("Playing Screen");
+      }}
+      key={song.id}
+      song={song}
+    />
+  );
 
-  // const getSongs = () => {
-  //   Alert.alert("seen");
-  //   MusicFiles.getAll({
-  //     blured: true, // works only when 'cover' is set to true
-  //     artist: true,
-  //     duration: true, //default : true
-  //     cover: true, //default : true,
-  //     genre: true,
-  //     title: true,
-  //     cover: true,
-  //     fields: ["title", "albumTitle", "genre", "lyrics", "artwork", "duration"], // for iOs Version
-  //   })
-  //     .then((tracks) => {
-  //       console.log(tracks);
-  //     })
-  //     .catch((error) => {
-  //       console.log(error);
-  //     });
-  // };
-
-  // useEffect(() => {
-  //   Permissions.request("storage").then((response) => {
-  //     setPhotoPermission(response);
-  //   });
-  //   getSongs();
-  // }, []);
-
-  const permissionAlert = () => {
-    Alert.alert("Permission Required", "This app needs to read audio files!", [
-      {
-        text: "I am ready",
-        onPress: () => getPermission(),
-      },
-      {
-        text: "cancel",
-        onPress: () => permissionAlert(),
-      },
-    ]);
+  const getTotalPlayTime = () => {
+    const totalTime = audioFiles.reduce(
+      (total, { duration }) => total + duration,
+      0
+    );
+    return totalTime;
   };
-
-  const getAudioFiles = async () => {
-    let media = await MediaLibrary.getAssetsAsync({
-      mediaType: "audio",
-    });
-    media = await MediaLibrary.getAssetsAsync({
-      mediaType: "audio",
-      first: media.totalCount,
-    });
-    setTotalAudioCount(media.totalCount);
-    setAudioFiles([...audioFiles, ...media.assets]);
-  };
-
-  const getPermission = async () => {
-    // {
-    //     "canAskAgain": true,
-    //     "expires": "never",
-    //     "granted": false,
-    //     "status": "undetermined",
-    //   }
-    const permission = await MediaLibrary.getPermissionsAsync();
-    if (permission.granted) {
-      //    we want to get all the audio files
-      audioFiles.length === 0 && getAudioFiles();
-    }
-
-    if (!permission.canAskAgain && !permission.granted) {
-      setPermissionError(true);
-    }
-
-    if (!permission.granted && permission.canAskAgain) {
-      const {
-        status,
-        canAskAgain,
-      } = await MediaLibrary.requestPermissionsAsync();
-      if (status === "denied" && canAskAgain) {
-        //   we are going to display alert that user must allow this permission to work this app
-        permissionAlert();
-      }
-
-      if (status === "granted") {
-        //    we want to get all the audio files
-        audioFiles.length === 0 && getAudioFiles();
-      }
-
-      if (status === "denied" && !canAskAgain) {
-        //   we want to display some error to the user
-        setPermissionError(true);
-      }
-    }
-  };
-  useEffect(() => {
-    getPermission();
-  }, []);
-
-  console.log(audioFiles, totalAudioCount);
 
   return (
-    <ScrollView>
+    <>
       <StatusBar />
       <SafeAreaView style={styles.container}>
         <ImageBackground
@@ -161,7 +98,7 @@ function AllMusicScreen({ navigation }) {
                 <Text style={styles.playlistTitle}>All Songs</Text>
                 {/* <Text style={styles.playlistArtist}>Kodaline</Text> */}
                 <Text style={styles.playlistTime}>
-                  5 hr 36 min . {totalAudioCount} songs
+                  {secondsToHHMM(getTotalPlayTime())} . {totalAudioCount} songs
                 </Text>
               </View>
             </View>
@@ -174,26 +111,21 @@ function AllMusicScreen({ navigation }) {
             style={styles.playButton}
             onPress={() => {
               navigation.navigate("Playing Screen");
-              setIsPlaying(!isPlaying);
+              // setIsPlaying(!isPlaying);
             }}
           />
         </View>
-        <View style={styles.playlistContainer}>
-          {audioFiles
-            .sort(
-              (a, b) =>
-                new Date(b.modificationTime) - new Date(a.modificationTime)
-            )
-            .map((song) => (
-              <MusicListItem
-                onPress={() => navigation.navigate("Playing Screen")}
-                key={song.id}
-                song={song}
-              />
-            ))}
-        </View>
+        <FlatList
+          data={audioFiles.sort(
+            (a, b) =>
+              new Date(b.modificationTime) - new Date(a.modificationTime)
+          )}
+          renderItem={renderItem}
+          keyExtractor={(song) => song.id}
+          progressViewOffset={20}
+        />
       </SafeAreaView>
-    </ScrollView>
+    </>
   );
 }
 
@@ -237,6 +169,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  playButton: {
+    backgroundColor: "#28fcfc",
+  },
   playButtonRow: {
     justifyContent: "flex-end",
     alignItems: "flex-end",
@@ -264,7 +199,7 @@ const styles = StyleSheet.create({
     // backgroundColor: "green",
     width: "100%",
     height: "100%",
-    padding: 0,
+    paddingTop: 8,
     justifyContent: "space-between",
   },
   musicImageBg: {

@@ -65,7 +65,7 @@ function HomeScreen({ navigation }) {
               colors: {
                 placeholder: "#c5c5c58c",
                 text: "white",
-                primary: "#3b9262",
+                primary: "#28fcfc",
                 underlineColor: "transparent",
                 background: "#003489",
               },
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
   recentlyPlayedTitle: { fontSize: 18, marginTop: 26, marginBottom: 24 },
   playButton: {
-    backgroundColor: "#3b9262",
+    backgroundColor: "#28fcfc",
   },
   playlistInfoContainer: {
     display: "flex",
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0d1117",
     paddingHorizontal: 16,
     color: "#fff",
-    height: Dimensions.get("window").height,
+    // height: Dimensions.get("window").height,
     // alignItems: "center",
     // justifyContent: "center",
   },
